@@ -481,7 +481,7 @@ public class CallPeerMediaHandlerJabberImpl
             initStream(ourContent.getName(), connector, dev, format, target,
                     direction, rtpExtensions);
 
-            System.out.println("Started Stream to: " + target.getDataAddress().getHostName() + ":" + target.getDataAddress().getPort());
+            System.out.println("Started Stream to: " + target.getDataAddress().getAddress().getHostAddress() + ":" + target.getDataAddress().getPort());
 
             // if remote peer requires inputevt, notify UI to capture mouse
             // and keyboard events
@@ -890,7 +890,7 @@ public class CallPeerMediaHandlerJabberImpl
         initStream(content.getName(), connector, dev,
                 supportedFormats.get(0), target, direction, rtpExtensions);
 
-        System.out.println("Started Stream to: " + target.getDataAddress().getHostName() + ":" + target.getDataAddress().getPort());
+        System.out.println("Started Stream to: " + target.getDataAddress().getAddress().getHostAddress() + ":" + target.getDataAddress().getPort());
     }
 
     /**
