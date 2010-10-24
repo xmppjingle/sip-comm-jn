@@ -26,16 +26,15 @@ import net.java.sip.communicator.util.*;
  * @author Lyubomir Marinov
  */
 public class CallPeerJabberImpl
-    extends MediaAwareCallPeer<CallJabberImpl,
-                               CallPeerMediaHandlerJabberImpl,
-                               ProtocolProviderServiceJabberImpl>
-{
+        extends MediaAwareCallPeer<CallJabberImpl,
+        CallPeerMediaHandlerJabberImpl,
+        ProtocolProviderServiceJabberImpl> {
     /**
      * The <tt>Logger</tt> used by the <tt>CallPeerJabberImpl</tt> class and its
      * instances for logging output.
      */
     private static final Logger logger
-        = Logger.getLogger(CallPeerJabberImpl.class);
+            = Logger.getLogger(CallPeerJabberImpl.class);
 
     /**
      * The jabber address of this peer
@@ -61,15 +60,14 @@ public class CallPeerJabberImpl
      * Creates a new call peer with address <tt>peerAddress</tt>.
      *
      * @param peerAddress the Jabber address of the new call peer.
-     * @param owningCall the call that contains this call peer.
+     * @param owningCall  the call that contains this call peer.
      */
-    public CallPeerJabberImpl(String         peerAddress,
-                              CallJabberImpl owningCall)
-    {
+    public CallPeerJabberImpl(String peerAddress,
+                              CallJabberImpl owningCall) {
         super(owningCall);
 
         this.peerJID = peerAddress;
-        setMediaHandler( new CallPeerMediaHandlerJabberImpl(this) );
+        setMediaHandler(new CallPeerMediaHandlerJabberImpl(this));
     }
 
     /**
@@ -77,8 +75,7 @@ public class CallPeerJabberImpl
      *
      * @return the peer's address or phone number.
      */
-    public String getAddress()
-    {
+    public String getAddress() {
         return peerJID;
     }
 
@@ -89,12 +86,12 @@ public class CallPeerJabberImpl
      *
      * @param address The address of this call peer.
      */
-    public void setAddress(String address)
-    {
+    public void setAddress(String address) {
         String oldAddress = getAddress();
 
-        if(peerJID.equals(address))
+        if (peerJID.equals(address)) {
             return;
+        }
 
         this.peerJID = address;
         //Fire the Event
@@ -109,14 +106,13 @@ public class CallPeerJabberImpl
      *
      * @return a String containing a name for that peer.
      */
-    public String getDisplayName()
-    {
-        if (getCall() != null)
-        {
+    public String getDisplayName() {
+        if (getCall() != null) {
             Contact contact = getContact();
 
-            if (contact != null)
+            if (contact != null) {
                 return contact.getDisplayName();
+            }
         }
         return peerJID;
     }
@@ -124,15 +120,15 @@ public class CallPeerJabberImpl
     /**
      * Returns the contact corresponding to this peer or null if no
      * particular contact has been associated.
-     * <p>
+     * <p/>
+     *
      * @return the <tt>Contact</tt> corresponding to this peer or null
-     * if no particular contact has been associated.
+     *         if no particular contact has been associated.
      */
-    public Contact getContact()
-    {
+    public Contact getContact() {
         ProtocolProviderService pps = getCall().getProtocolProvider();
         OperationSetPresence opSetPresence
-            = pps.getOperationSet(OperationSetPresence.class);
+                = pps.getOperationSet(OperationSetPresence.class);
 
         return opSetPresence.findContactByID(getAddress());
     }
@@ -143,10 +139,9 @@ public class CallPeerJabberImpl
      * "session-info/ringing" or a "session-terminate" response.
      *
      * @param sessionInitIQ The {@link JingleIQ} that created the session that
-     * we are handling here.
+     *                      we are handling here.
      */
-    protected synchronized void processSessionInitiate(JingleIQ sessionInitIQ)
-    {
+    protected synchronized void processSessionInitiate(JingleIQ sessionInitIQ) {
         this.sessionInitIQ = sessionInitIQ;
         this.isInitiator = true;
 
@@ -155,23 +150,23 @@ public class CallPeerJabberImpl
         // says: "A session consists of at least one content type at a time."
         List<ContentPacketExtension> offer = sessionInitIQ.getContentList();
 
-        try
-        {
+        try {
             getMediaHandler().processOffer(offer);
         }
-        catch(Exception ex)
-        {
+        catch (Exception ex) {
             logger.info("Failed to process an incoming session initiate", ex);
+            System.out.println("Exception On ProcessOffer: " + ex.getMessage());
+            ex.printStackTrace();
 
             //send an error response;
             String reasonText = "Error: " + ex.getMessage();
             JingleIQ errResp
-                = JinglePacketFactory.createSessionTerminate(
-                        sessionInitIQ.getTo(),
-                        sessionInitIQ.getFrom(),
-                        sessionInitIQ.getSID(),
-                        Reason.INCOMPATIBLE_PARAMETERS,
-                        reasonText);
+                    = JinglePacketFactory.createSessionTerminate(
+                    sessionInitIQ.getTo(),
+                    sessionInitIQ.getFrom(),
+                    sessionInitIQ.getSID(),
+                    Reason.INCOMPATIBLE_PARAMETERS,
+                    reasonText);
 
             setState(CallPeerState.FAILED, reasonText);
             getProtocolProvider().getConnection().sendPacket(errResp);
@@ -179,8 +174,9 @@ public class CallPeerJabberImpl
         }
 
         //send a ringing response
-        if (logger.isTraceEnabled())
+        if (logger.isTraceEnabled()) {
             logger.trace("will send ringing response: ");
+        }
 
         getProtocolProvider().getConnection().sendPacket(
                 JinglePacketFactory.createRinging(sessionInitIQ));
@@ -194,27 +190,27 @@ public class CallPeerJabberImpl
      * @throws OperationFailedException exception
      */
     protected synchronized void initiateSession()
-        throws OperationFailedException
-    {
+            throws OperationFailedException {
         isInitiator = false;
 
         //Create the media description that we'd like to send to the other side.
         List<ContentPacketExtension> offer
-            = getMediaHandler().createContentList();
+                = getMediaHandler().createContentList();
 
         //send a ringing response
-        if (logger.isTraceEnabled())
+        if (logger.isTraceEnabled()) {
             logger.trace("will send ringing response: ");
+        }
 
         ProtocolProviderServiceJabberImpl protocolProvider
-            = getProtocolProvider();
+                = getProtocolProvider();
 
         this.sessionInitIQ
-            = JinglePacketFactory.createSessionInitiate(
-                    protocolProvider.getOurJID(),
-                    this.peerJID,
-                    JingleIQ.generateSID(),
-                    offer);
+                = JinglePacketFactory.createSessionInitiate(
+                protocolProvider.getOurJID(),
+                this.peerJID,
+                JingleIQ.generateSID(),
+                offer);
 
         protocolProvider.getConnection().sendPacket(sessionInitIQ);
     }
@@ -222,35 +218,32 @@ public class CallPeerJabberImpl
     /**
      * Indicates a user request to answer an incoming call from this
      * <tt>CallPeer</tt>.
-     *
+     * <p/>
      * Sends an OK response to <tt>callPeer</tt>. Make sure that the call
      * peer contains an SDP description when you call this method.
      *
      * @throws OperationFailedException if we fail to create or send the
-     * response.
+     *                                  response.
      */
     public synchronized void answer()
-        throws OperationFailedException
-    {
+            throws OperationFailedException {
         Iterable<ContentPacketExtension> answer;
 
-        try
-        {
+        try {
             answer = getMediaHandler().generateSessionAccept();
         }
-        catch(Exception exc)
-        {
+        catch (Exception exc) {
             logger.info("Failed to answer an incoming call", exc);
 
             //send an error response
             String reasonText = "Error: " + exc.getMessage();
             JingleIQ errResp
-                = JinglePacketFactory.createSessionTerminate(
-                        sessionInitIQ.getTo(),
-                        sessionInitIQ.getFrom(),
-                        sessionInitIQ.getSID(),
-                        Reason.FAILED_APPLICATION,
-                        reasonText);
+                    = JinglePacketFactory.createSessionTerminate(
+                    sessionInitIQ.getTo(),
+                    sessionInitIQ.getFrom(),
+                    sessionInitIQ.getSID(),
+                    Reason.FAILED_APPLICATION,
+                    reasonText);
 
             setState(CallPeerState.FAILED, reasonText);
             getProtocolProvider().getConnection().sendPacket(errResp);
@@ -258,11 +251,11 @@ public class CallPeerJabberImpl
         }
 
         JingleIQ response
-            = JinglePacketFactory.createSessionAccept(
-                    sessionInitIQ.getTo(),
-                    sessionInitIQ.getFrom(),
-                    getJingleSID(),
-                    answer);
+                = JinglePacketFactory.createSessionAccept(
+                sessionInitIQ.getTo(),
+                sessionInitIQ.getFrom(),
+                getJingleSID(),
+                answer);
 
         //send the packet first and start the stream later  in case the media
         //relay needs to see it before letting hole punching techniques through.
@@ -279,15 +272,14 @@ public class CallPeerJabberImpl
      * of the peer the method would send a CANCEL, BYE, or BUSY_HERE message
      * and set the new state to DISCONNECTED.
      */
-    public void hangup()
-    {
+    public void hangup() {
         // do nothing if the call is already ended
         if (CallPeerState.DISCONNECTED.equals(getState())
-            || CallPeerState.FAILED.equals(getState()))
-        {
-            if (logger.isDebugEnabled())
+                || CallPeerState.FAILED.equals(getState())) {
+            if (logger.isDebugEnabled()) {
                 logger.debug("Ignoring a request to hangup a call peer "
                         + "that is already DISCONNECTED");
+            }
             return;
         }
 
@@ -296,36 +288,28 @@ public class CallPeerJabberImpl
         JingleIQ responseIQ = null;
 
         if (prevPeerState.equals(CallPeerState.CONNECTED)
-            || CallPeerState.isOnHold(prevPeerState))
-        {
+                || CallPeerState.isOnHold(prevPeerState)) {
             responseIQ = JinglePacketFactory.createBye(
-                getProtocolProvider().getOurJID(), peerJID, getJingleSID());
-        }
-        else if (CallPeerState.CONNECTING.equals(prevPeerState)
-            || CallPeerState.CONNECTING_WITH_EARLY_MEDIA.equals(prevPeerState)
-            || CallPeerState.ALERTING_REMOTE_SIDE.equals(prevPeerState))
-        {
+                    getProtocolProvider().getOurJID(), peerJID, getJingleSID());
+        } else if (CallPeerState.CONNECTING.equals(prevPeerState)
+                || CallPeerState.CONNECTING_WITH_EARLY_MEDIA.equals(prevPeerState)
+                || CallPeerState.ALERTING_REMOTE_SIDE.equals(prevPeerState)) {
             responseIQ = JinglePacketFactory.createCancel(
-                getProtocolProvider().getOurJID(), peerJID, getJingleSID());
-        }
-        else if (prevPeerState.equals(CallPeerState.INCOMING_CALL))
-        {
+                    getProtocolProvider().getOurJID(), peerJID, getJingleSID());
+        } else if (prevPeerState.equals(CallPeerState.INCOMING_CALL)) {
             responseIQ = JinglePacketFactory.createBusy(
-                getProtocolProvider().getOurJID(), peerJID, getJingleSID());
-        }
-        else if (prevPeerState.equals(CallPeerState.BUSY)
-                 || prevPeerState.equals(CallPeerState.FAILED))
-        {
+                    getProtocolProvider().getOurJID(), peerJID, getJingleSID());
+        } else if (prevPeerState.equals(CallPeerState.BUSY)
+                || prevPeerState.equals(CallPeerState.FAILED)) {
             // For FAILED and BUSY we only need to update CALL_STATUS
             // as everything else has been done already.
-        }
-        else
-        {
+        } else {
             logger.info("Could not determine call peer state!");
         }
 
-        if (responseIQ != null)
+        if (responseIQ != null) {
             getProtocolProvider().getConnection().sendPacket(responseIQ);
+        }
     }
 
     /**
@@ -333,8 +317,7 @@ public class CallPeerJabberImpl
      *
      * @return the session ID of the Jingle session associated with this call.
      */
-    public String getJingleSID()
-    {
+    public String getJingleSID() {
         return sessionInitIQ.getSID();
     }
 
@@ -344,22 +327,22 @@ public class CallPeerJabberImpl
      *
      * @param jingleIQ the {@link JingleIQ} that's terminating our session.
      */
-    public void processSessionTerminate(JingleIQ jingleIQ)
-    {
+    public void processSessionTerminate(JingleIQ jingleIQ) {
         String reasonStr = "Call ended by remote side.";
         ReasonPacketExtension reasonExt = jingleIQ.getReason();
 
-        if(reasonStr != null)
-        {
+        if (reasonStr != null) {
             Reason reason = reasonExt.getReason();
 
-            if(reason != null)
+            if (reason != null) {
                 reasonStr += " Reason: " + reason.toString() + ".";
+            }
 
             String text = reasonExt.getText();
 
-            if(text != null)
+            if (text != null) {
                 reasonStr += " " + text;
+            }
         }
 
         setState(CallPeerState.DISCONNECTED, reasonStr);
@@ -371,29 +354,27 @@ public class CallPeerJabberImpl
      * "session-info/ringing" or a "session-terminate" response.
      *
      * @param sessionInitIQ The {@link JingleIQ} that created the session that
-     * we are handling here.
+     *                      we are handling here.
      */
-    public void processSessionAccept(JingleIQ sessionInitIQ)
-    {
+    public void processSessionAccept(JingleIQ sessionInitIQ) {
         this.sessionInitIQ = sessionInitIQ;
 
         CallPeerMediaHandlerJabberImpl mediaHandler = getMediaHandler();
         List<ContentPacketExtension> answer = sessionInitIQ.getContentList();
 
-        try
-        {
+        try {
             mediaHandler.processAnswer(answer);
         }
-        catch(Exception exc)
-        {
-            if (logger.isInfoEnabled())
+        catch (Exception exc) {
+            if (logger.isInfoEnabled()) {
                 logger.info("Failed to process a session-accept", exc);
+            }
 
             //send an error response;
             JingleIQ errResp = JinglePacketFactory.createSessionTerminate(
-                sessionInitIQ.getTo(), sessionInitIQ.getFrom(),
-                sessionInitIQ.getSID(), Reason.INCOMPATIBLE_PARAMETERS,
-                exc.getClass().getName() + ": " + exc.getMessage());
+                    sessionInitIQ.getTo(), sessionInitIQ.getFrom(),
+                    sessionInitIQ.getSID(), Reason.INCOMPATIBLE_PARAMETERS,
+                    exc.getClass().getName() + ": " + exc.getMessage());
 
             setState(CallPeerState.FAILED, "Error: " + exc.getMessage());
             getProtocolProvider().getConnection().sendPacket(errResp);
@@ -411,24 +392,21 @@ public class CallPeerJabberImpl
      * Puts the <tt>CallPeer</tt> represented by this instance on or off hold.
      *
      * @param onHold <tt>true</tt> to have the <tt>CallPeer</tt> put on hold;
-     * <tt>false</tt>, otherwise
-     *
+     *               <tt>false</tt>, otherwise
      * @throws OperationFailedException if we fail to construct or send the
-     * INVITE request putting the remote side on/off hold.
+     *                                  INVITE request putting the remote side on/off hold.
      */
     public void putOnHold(boolean onHold)
-        throws OperationFailedException
-    {
+            throws OperationFailedException {
         CallPeerMediaHandlerJabberImpl mediaHandler = getMediaHandler();
 
         mediaHandler.setLocallyOnHold(onHold);
 
         SessionInfoType type;
 
-        if(onHold)
+        if (onHold) {
             type = SessionInfoType.hold;
-        else
-        {
+        } else {
             type = SessionInfoType.unhold;
             getMediaHandler().reinitAllContents();
         }
@@ -438,10 +416,10 @@ public class CallPeerJabberImpl
         reevalLocalHoldStatus();
 
         JingleIQ onHoldIQ = JinglePacketFactory.createSessionInfo(
-                        getProtocolProvider().getOurJID(),
-                        peerJID,
-                        getJingleSID(),
-                        type);
+                getProtocolProvider().getOurJID(),
+                peerJID,
+                getJingleSID(),
+                type);
 
         getProtocolProvider().getConnection().sendPacket(onHoldIQ);
     }
@@ -450,10 +428,9 @@ public class CallPeerJabberImpl
      * Sets the service discovery information that we have for this peer.
      *
      * @param discoverInfo the discovery information that we have obtained for
-     * this peer.
+     *                     this peer.
      */
-    public void setDiscoverInfo(DiscoverInfo discoverInfo)
-    {
+    public void setDiscoverInfo(DiscoverInfo discoverInfo) {
         this.discoverInfo = discoverInfo;
     }
 
@@ -462,8 +439,7 @@ public class CallPeerJabberImpl
      *
      * @return the service discovery information that we have for this peer.
      */
-    public DiscoverInfo getDiscoverInfo()
-    {
+    public DiscoverInfo getDiscoverInfo() {
         return discoverInfo;
     }
 
@@ -473,10 +449,9 @@ public class CallPeerJabberImpl
      * the responder!
      *
      * @return <tt>true</tt> if this peer is the one that initiated the session
-     * and <tt>false</tt> otherwise (i.e. if _we_ initiated the session).
+     *         and <tt>false</tt> otherwise (i.e. if _we_ initiated the session).
      */
-    public boolean isInitiator()
-    {
+    public boolean isInitiator() {
         return isInitiator;
     }
 
@@ -486,18 +461,15 @@ public class CallPeerJabberImpl
      *
      * @param info the {@link SessionInfoPacketExtension} that we just received.
      */
-    public void processSessionInfo(SessionInfoPacketExtension info)
-    {
-        if( info.getType() == SessionInfoType.ringing)
+    public void processSessionInfo(SessionInfoPacketExtension info) {
+        if (info.getType() == SessionInfoType.ringing) {
             setState(CallPeerState.ALERTING_REMOTE_SIDE);
-        if (info.getType() == SessionInfoType.hold)
-        {
+        }
+        if (info.getType() == SessionInfoType.hold) {
             getMediaHandler().setRemotelyOnHold(true);
             reevalRemoteHoldStatus();
-        }
-        else if (info.getType() == SessionInfoType.unhold
-                 || info.getType() == SessionInfoType.active)
-        {
+        } else if (info.getType() == SessionInfoType.unhold
+                || info.getType() == SessionInfoType.active) {
             getMediaHandler().setRemotelyOnHold(false);
             reevalRemoteHoldStatus();
         }
@@ -506,28 +478,25 @@ public class CallPeerJabberImpl
     /**
      * Send a <tt>content-add</tt> to add video setup.
      */
-    private void sendAddVideoContent()
-    {
+    private void sendAddVideoContent() {
         List<ContentPacketExtension> contents = null;
 
-        try
-        {
+        try {
             contents = getMediaHandler().createContentList(MediaType.VIDEO);
         }
-        catch(Exception exc)
-        {
+        catch (Exception exc) {
             logger.warn("Failed to gather content for video type", exc);
             return;
         }
 
         ProtocolProviderServiceJabberImpl protocolProvider
-            = getProtocolProvider();
+                = getProtocolProvider();
         JingleIQ contentIQ
-            = JinglePacketFactory.createContentAdd(
-                    protocolProvider.getOurJID(),
-                    this.peerJID,
-                    getJingleSID(),
-                    contents);
+                = JinglePacketFactory.createContentAdd(
+                protocolProvider.getOurJID(),
+                this.peerJID,
+                getJingleSID(),
+                contents);
 
         protocolProvider.getConnection().sendPacket(contentIQ);
     }
@@ -535,26 +504,25 @@ public class CallPeerJabberImpl
     /**
      * Send a <tt>content-remove</tt> to remove video setup.
      */
-    private void sendRemoveVideoContent()
-    {
+    private void sendRemoveVideoContent() {
         CallPeerMediaHandlerJabberImpl mediaHandler = getMediaHandler();
 
         ContentPacketExtension content = new ContentPacketExtension();
         ContentPacketExtension remoteContent
-            = mediaHandler.getRemoteContent(MediaType.VIDEO.toString());
+                = mediaHandler.getRemoteContent(MediaType.VIDEO.toString());
 
         content.setName(remoteContent.getName());
         content.setCreator(remoteContent.getCreator());
         content.setSenders(remoteContent.getSenders());
 
         ProtocolProviderServiceJabberImpl protocolProvider
-            = getProtocolProvider();
+                = getProtocolProvider();
         JingleIQ contentIQ
-            = JinglePacketFactory.createContentRemove(
-                    protocolProvider.getOurJID(),
-                    this.peerJID,
-                    getJingleSID(),
-                    Arrays.asList(content));
+                = JinglePacketFactory.createContentRemove(
+                protocolProvider.getOurJID(),
+                this.peerJID,
+                getJingleSID(),
+                Arrays.asList(content));
 
         protocolProvider.getConnection().sendPacket(contentIQ);
         mediaHandler.removeContent(remoteContent.getName());
@@ -568,24 +536,21 @@ public class CallPeerJabberImpl
      *
      * @param allowed if the local video is allowed or not
      */
-    public void sendModifyVideoContent(boolean allowed)
-    {
+    public void sendModifyVideoContent(boolean allowed) {
         ContentPacketExtension ext = new ContentPacketExtension();
         ContentPacketExtension remoteContent = getMediaHandler().
-            getRemoteContent(MediaType.VIDEO.toString());
+                getRemoteContent(MediaType.VIDEO.toString());
 
-        if(remoteContent == null)
-        {
-            if(allowed)
+        if (remoteContent == null) {
+            if (allowed) {
                 sendAddVideoContent();
+            }
             return;
-        }
-        else if(!allowed &&
+        } else if (!allowed &&
                 ((!isInitiator &&
-                 remoteContent.getSenders() == SendersEnum.initiator) ||
-                (isInitiator &&
-                 remoteContent.getSenders() == SendersEnum.responder)))
-        {
+                        remoteContent.getSenders() == SendersEnum.initiator) ||
+                        (isInitiator &&
+                                remoteContent.getSenders() == SendersEnum.responder))) {
             sendRemoveVideoContent();
             return;
         }
@@ -595,30 +560,19 @@ public class CallPeerJabberImpl
         /* adjust the senders attribute depending on current value and if we
          * allowed or not local video streaming
          */
-        if(allowed)
-        {
-            if(senders != SendersEnum.none)
-            {
+        if (allowed) {
+            if (senders != SendersEnum.none) {
                 senders = SendersEnum.both;
-            }
-            else if(senders == SendersEnum.none && !isInitiator)
-            {
+            } else if (senders == SendersEnum.none && !isInitiator) {
                 senders = SendersEnum.initiator;
-            }
-            else if(senders == SendersEnum.none && isInitiator)
-            {
+            } else if (senders == SendersEnum.none && isInitiator) {
                 senders = SendersEnum.responder;
             }
-        }
-        else
-        {
-            if(senders == SendersEnum.both)
-            {
+        } else {
+            if (senders == SendersEnum.both) {
                 senders = !isInitiator ? SendersEnum.responder :
-                    SendersEnum.initiator;
-            }
-            else
-            {
+                        SendersEnum.initiator;
+            } else {
                 senders = SendersEnum.none;
             }
         }
@@ -628,62 +582,56 @@ public class CallPeerJabberImpl
         ext.setName(remoteContent.getName());
 
         JingleIQ contentIQ = JinglePacketFactory
-            .createContentModify(getProtocolProvider().getOurJID(),
-                            this.peerJID, getJingleSID(), ext);
+                .createContentModify(getProtocolProvider().getOurJID(),
+                        this.peerJID, getJingleSID(), ext);
 
         getProtocolProvider().getConnection().sendPacket(contentIQ);
 
-        try
-        {
+        try {
             getMediaHandler().reinitContent(remoteContent.getName(), senders);
         }
-        catch(Exception e)
-        {
+        catch (Exception e) {
             logger.warn("Exception occurred when media reinitialization", e);
         }
-     }
+    }
 
     /**
      * Processes the content-add {@link JingleIQ}.
      *
      * @param content The {@link JingleIQ} that contains content that remote
-     * peer wants to be added
+     *                peer wants to be added
      */
-    public void processContentAdd(JingleIQ content)
-    {
+    public void processContentAdd(JingleIQ content) {
         CallPeerMediaHandlerJabberImpl mediaHandler = getMediaHandler();
         List<ContentPacketExtension> contents = content.getContentList();
         Iterable<ContentPacketExtension> answerContents;
         JingleIQ contentIQ;
 
-        try
-        {
+        try {
             mediaHandler.processOffer(contents);
             answerContents = mediaHandler.generateSessionAccept();
             contentIQ = null;
         }
-        catch(Exception e)
-        {
+        catch (Exception e) {
             logger.warn("Exception occurred", e);
 
             answerContents = null;
             contentIQ
-                = JinglePacketFactory.createContentReject(
-                        getProtocolProvider().getOurJID(),
-                        this.peerJID,
-                        getJingleSID(),
-                        answerContents);
+                    = JinglePacketFactory.createContentReject(
+                    getProtocolProvider().getOurJID(),
+                    this.peerJID,
+                    getJingleSID(),
+                    answerContents);
         }
 
-        if(contentIQ == null)
-        {
+        if (contentIQ == null) {
             /* send content-accept */
             contentIQ
-                = JinglePacketFactory.createContentAccept(
-                        getProtocolProvider().getOurJID(),
-                        this.peerJID,
-                        getJingleSID(),
-                        answerContents);
+                    = JinglePacketFactory.createContentAccept(
+                    getProtocolProvider().getOurJID(),
+                    this.peerJID,
+                    getJingleSID(),
+                    answerContents);
         }
 
         getProtocolProvider().getConnection().sendPacket(contentIQ);
@@ -694,18 +642,15 @@ public class CallPeerJabberImpl
      * Processes the content-accept {@link JingleIQ}.
      *
      * @param content The {@link JingleIQ} that contains content that remote
-     * peer has accepted
+     *                peer has accepted
      */
-    public void processContentAccept(JingleIQ content)
-    {
+    public void processContentAccept(JingleIQ content) {
         List<ContentPacketExtension> contents = content.getContentList();
 
-        try
-        {
+        try {
             getMediaHandler().processAnswer(contents);
         }
-        catch(Exception exc)
-        {
+        catch (Exception exc) {
             logger.warn("Failed to process a content-accept", exc);
             //send an error response;
             JingleIQ errResp = JinglePacketFactory.createSessionTerminate(
@@ -725,19 +670,16 @@ public class CallPeerJabberImpl
      * Processes the content-modify {@link JingleIQ}.
      *
      * @param content The {@link JingleIQ} that contains content that remote
-     * peer wants to be modified
+     *                peer wants to be modified
      */
-    public void processContentModify(JingleIQ content)
-    {
+    public void processContentModify(JingleIQ content) {
         ContentPacketExtension ext = content.getContentList().get(0);
         SendersEnum senders = ext.getSenders();
 
-        try
-        {
+        try {
             getMediaHandler().reinitContent(ext.getName(), senders);
         }
-        catch(Exception exc)
-        {
+        catch (Exception exc) {
             logger.info("Failed to process an incoming content-modify", exc);
 
             //send an error response;
@@ -756,17 +698,15 @@ public class CallPeerJabberImpl
      * Processes the content-remove {@link JingleIQ}.
      *
      * @param content The {@link JingleIQ} that contains content that remote
-     * peer wants to be removed
+     *                peer wants to be removed
      */
-    public void processContentRemove(JingleIQ content)
-    {
+    public void processContentRemove(JingleIQ content) {
         List<ContentPacketExtension> contents = content.getContentList();
 
-        if (!contents.isEmpty())
-        {
+        if (!contents.isEmpty()) {
             CallPeerMediaHandlerJabberImpl mediaHandler = getMediaHandler();
 
-            for(ContentPacketExtension c : contents)
+            for (ContentPacketExtension c : contents)
                 mediaHandler.removeContent(c.getName());
 
             /*
@@ -784,15 +724,13 @@ public class CallPeerJabberImpl
      *
      * @param content The {@link JingleIQ}
      */
-    public void processContentReject(JingleIQ content)
-    {
-        if(content.getContentList().isEmpty())
-        {
+    public void processContentReject(JingleIQ content) {
+        if (content.getContentList().isEmpty()) {
             //send an error response;
             JingleIQ errResp = JinglePacketFactory.createSessionTerminate(
-                sessionInitIQ.getTo(), sessionInitIQ.getFrom(),
-                sessionInitIQ.getSID(), Reason.INCOMPATIBLE_PARAMETERS,
-                "Error: content rejected");
+                    sessionInitIQ.getTo(), sessionInitIQ.getFrom(),
+                    sessionInitIQ.getSID(), Reason.INCOMPATIBLE_PARAMETERS,
+                    "Error: content rejected");
 
             setState(CallPeerState.FAILED, "Error: content rejected");
             getProtocolProvider().getConnection().sendPacket(errResp);
@@ -805,18 +743,15 @@ public class CallPeerJabberImpl
      *
      * @param jingleIQ the <tt>transport-info</tt> {@link JingleIQ} to process
      */
-    public void processTransportInfo(JingleIQ jingleIQ)
-    {
+    public void processTransportInfo(JingleIQ jingleIQ) {
         /*
          * The transport-info action is used to exchange transport candidates so
          * it only concerns the mediaHandler.
          */
-        try
-        {
+        try {
             getMediaHandler().processTransportInfo(jingleIQ.getContentList());
         }
-        catch (OperationFailedException ofe)
-        {
+        catch (OperationFailedException ofe) {
             logger.error("Failed to process an incoming transport-info", ofe);
         }
     }
@@ -826,18 +761,17 @@ public class CallPeerJabberImpl
      * using the <tt>transport-info</tt> {@link JingleIQ}.
      *
      * @param contents the local candidate addresses to be sent from the local
-     * peer to the remote peer using the <tt>transport-info</tt>
-     * {@link JingleIQ}
+     *                 peer to the remote peer using the <tt>transport-info</tt>
+     *                 {@link JingleIQ}
      */
-    void sendTransportInfo(Iterable<ContentPacketExtension> contents)
-    {
+    void sendTransportInfo(Iterable<ContentPacketExtension> contents) {
         JingleIQ transportInfo = new JingleIQ();
 
         for (ContentPacketExtension content : contents)
             transportInfo.addContent(content);
 
         ProtocolProviderServiceJabberImpl protocolProvider
-            = getProtocolProvider();
+                = getProtocolProvider();
 
         transportInfo.setAction(JingleAction.TRANSPORT_INFO);
         transportInfo.setFrom(protocolProvider.getOurJID());

@@ -22,6 +22,9 @@ import org.jivesoftware.smack.provider.*;
 import org.jivesoftware.smackx.packet.*;
 import org.jivesoftware.smackx.ServiceDiscoveryManager;
 import org.xmpp.jnodes.smack.JingleChannelIQ;
+import org.xmpp.jnodes.smack.JingleTrackerIQ;
+import org.xmpp.jnodes.smack.JingleTrackerProvider;
+import org.xmpp.jnodes.smack.JingleNodesProvider;
 
 /**
  * Implements all call management logic and exports basic telephony support by
@@ -91,13 +94,18 @@ public class OperationSetBasicTelephonyJabberImpl
                 logger.info("Jingle : ON ");
             }
 
-            RawUdpJNTransportManager.initialize(getProtocolProvider().getConnection());
-
         } else if (registrationState == RegistrationState.UNREGISTERED) {
             // TODO plug jingle unregistration
             if (logger.isInfoEnabled()) {
                 logger.info("Jingle : OFF ");
             }
+        } else if (registrationState == RegistrationState.REGISTERED) {
+            ServiceDiscoveryManager.getInstanceFor(getProtocolProvider().getConnection()).addFeature(JingleTrackerIQ.NAMESPACE);
+            ServiceDiscoveryManager.getInstanceFor(getProtocolProvider().getConnection()).addFeature(JingleChannelIQ.NAMESPACE);
+            ProviderManager.getInstance().addIQProvider(JingleChannelIQ.NAME, JingleChannelIQ.NAMESPACE, new JingleNodesProvider());
+            ProviderManager.getInstance().addIQProvider(JingleTrackerIQ.NAME, JingleTrackerIQ.NAMESPACE, new JingleTrackerProvider());
+
+            RawUdpJNTransportManager.initialize(getProtocolProvider().getConnection());
         }
     }
 
@@ -467,6 +475,7 @@ public class OperationSetBasicTelephonyJabberImpl
         if (action == JingleAction.SESSION_INITIATE) {
             CallJabberImpl call = new CallJabberImpl(this);
 
+            System.out.println("Processing Session-Initiate...");
             call.processSessionInitiate(jingleIQ);
             return;
         } else if (callPeer == null) {

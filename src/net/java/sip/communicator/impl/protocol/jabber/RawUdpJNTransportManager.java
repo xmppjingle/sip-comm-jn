@@ -13,6 +13,7 @@ import net.java.sip.communicator.service.neomedia.MediaType;
 import net.java.sip.communicator.service.neomedia.StreamConnector;
 import net.java.sip.communicator.service.protocol.OperationFailedException;
 import org.jivesoftware.smack.XMPPConnection;
+import org.jivesoftware.smackx.ServiceDiscoveryManager;
 import org.xmpp.jnodes.smack.JingleChannelIQ;
 import org.xmpp.jnodes.smack.SmackServiceNode;
 import org.xmpp.jnodes.smack.TrackerEntry;
@@ -83,11 +84,14 @@ public class RawUdpJNTransportManager
 
         if (remote != null) {
             for (ContentPacketExtension content : remote) {
+                System.out.println("Target for Content: " + content.getName());
                 RtpDescriptionPacketExtension rtpDescription
                         = content.getFirstChildOfType(
                         RtpDescriptionPacketExtension.class);
                 MediaType contentMediaType
                         = MediaType.parseString(rtpDescription.getMedia());
+
+                System.out.println("Target of: " + contentMediaType.toString());
 
                 if (mediaType.equals(contentMediaType)) {
                     if (!channels.containsKey(mediaType)) {
@@ -132,7 +136,8 @@ public class RawUdpJNTransportManager
      *          if we fail to allocate a port number.
      */
     public void startCandidateHarvest(List<ContentPacketExtension> theirOffer,
-                                      List<ContentPacketExtension> ourAnswer)
+                                      List<ContentPacketExtension> ourAnswer,
+                                      TransportInfoSender transportInfoSender)
             throws OperationFailedException {
 
         this.remote = theirOffer;
@@ -224,18 +229,30 @@ public class RawUdpJNTransportManager
         XMPPConnection conn;
         JingleChannelIQ ciq = null;
 
+        System.out.println("Trying To Use Jingle Nodes.");
+
         if (requestRelay) {
+
+            System.out.println("Request Relay Required.");
 
             conn = this.getCallPeer().getProtocolProvider().getConnection();
             final SmackServiceNode service = services.get(conn);
 
             if (service != null) {
 
+                System.out.println("Jingle Nodes Service Found.");
+
                 final TrackerEntry preffered = service.getPreferedRelay();
 
                 if (preffered != null) {
+                    System.out.println("Jingle Nodes Channel Provider Found: " + preffered.getJid());
                     ciq = SmackServiceNode.getChannel(conn, preffered.getJid());
-                } 
+                    System.out.println("Jingle Nodes Channel Received: " + ciq.getHost() + ":" + ciq.getLocalport());
+                } else {
+                    System.out.println("Jingle Nodes Channel Provider NOT Found.");
+                }
+            } else {
+                System.out.println("Jingle Nodes Service NOT Found.");
             }
         }
 
@@ -247,14 +264,15 @@ public class RawUdpJNTransportManager
             MediaType contentMediaType
                     = MediaType.parseString(rtpDesc.getMedia());
 
-            channels.put(contentMediaType, ciq);            
+            channels.put(contentMediaType, ciq);
         } else {
+            System.out.println("Error getting Relay. Using Default Addresses.");
             StreamConnector connector = getStreamConnector(
                     MediaType.parseString(rtpDesc.getMedia()));
 
             ip = connector.getDataSocket().getLocalAddress()
                     .getHostAddress();
-            port = connector.getDataSocket().getLocalPort();            
+            port = connector.getDataSocket().getLocalPort();
         }
 
         // create and add candidates that correspond to the stream connector
@@ -295,39 +313,6 @@ public class RawUdpJNTransportManager
         return local;
     }
 
-    /**
-     * Implements
-     * {@link net.java.sip.communicator.impl.protocol.jabber.TransportManagerJabberImpl#startConnectivityEstablishment(Iterable)}.
-     * Since this represents a raw UDP transport, performs no connectivity
-     * checks and just remembers the remote counterpart of the negotiation
-     * between the local and the remote peers in order to be able to report the
-     * <tt>MediaStreamTarget</tt>s upon request.
-     *
-     * @param remote the collection of <tt>ContentPacketExtension</tt>s which
-     *               represent the remote counterpart of the negotiation between the local and
-     *               the remote peers
-     * @see net.java.sip.communicator.impl.protocol.jabber.TransportManagerJabberImpl#startConnectivityEstablishment(Iterable)
-     */
-    public void startConnectivityEstablishment(
-            Iterable<ContentPacketExtension> remote) {
-        this.remote = remote;
-    }
-
-    /**
-     * Implements
-     * {@link net.java.sip.communicator.impl.protocol.jabber.TransportManagerJabberImpl#wrapupConnectivityEstablishment()}.
-     * Since this represents a raw UDP transport i.e. no connectivity checks are
-     * performed, just returns the local counterpart of the negotiation between
-     * the local and the remote peers.
-     *
-     * @return the local counterpart of the negotiation between the local and
-     *         the remote peers
-     * @see net.java.sip.communicator.impl.protocol.jabber.TransportManagerJabberImpl#wrapupConnectivityEstablishment()
-     */
-    public Iterable<ContentPacketExtension> wrapupConnectivityEstablishment() {
-        return local;
-    }
-
     @Override
     protected InetAddress getIntendedDestination(CallPeerJabberImpl peer) {
 
@@ -365,15 +350,58 @@ public class RawUdpJNTransportManager
         return super.getIntendedDestination(peer);
     }
 
+    /**
+     * Starts the connectivity establishment of this
+     * <tt>TransportManagerJabberImpl</tt> i.e. checks the connectivity between
+     * the local and the remote peers given the remote counterpart of the
+     * negotiation between them.
+     *
+     * @param remote the collection of <tt>ContentPacketExtension</tt>s which
+     *               represents the remote counterpart of the negotiation between the local
+     *               and the remote peer
+     * @return <tt>true</tt> if connectivity establishment has been started in
+     *         response to the call; otherwise, <tt>false</tt>.
+     *         <tt>TransportManagerJabberImpl</tt> implementations which do not perform
+     *         connectivity checks (e.g. raw UDP) should return <tt>true</tt>. The
+     *         default implementation does not perform connectivity checks and always
+     *         returns <tt>true</tt>.
+     */
+    public boolean startConnectivityEstablishment(
+            Iterable<ContentPacketExtension> remote) {
+        this.remote = remote;
+        return true;
+    }
+
     public synchronized static void initialize(final XMPPConnection connection) {
         if (!services.containsKey(connection)) {
             final SmackServiceNode service = new SmackServiceNode(connection, 60000);
 
-            final SmackServiceNode.MappedNodes nodes = SmackServiceNode.searchServices(connection, 3, 3, 12, JingleChannelIQ.UDP);
+            final SmackServiceNode.MappedNodes nodes = SmackServiceNode.searchServices(connection, 5, 3, 20, JingleChannelIQ.UDP);
             service.addEntries(nodes);
 
             services.put(connection, service);
         }
     }
+
+    /**
+     * Removes a content with a specific name from the transport-related part of
+     * the session represented by this <tt>TransportManagerJabberImpl</tt> which
+     * may have been reported through previous calls to the
+     * <tt>startCandidateHarvest</tt> and
+     * <tt>startConnectivityEstablishment</tt> methods.
+     *
+     * @param name the name of the content to be removed from the
+     *             transport-related part of the session represented by this
+     *             <tt>TransportManagerJabberImpl</tt>
+     * @see TransportManagerJabberImpl#removeContent(String)
+     */
+    public void removeContent(String name) {
+        if (local != null) {
+            removeContent(local, name);
+        }
+        if (remote != null) {
+            removeContent(remote, name);
+        }
+    }  
 
 }

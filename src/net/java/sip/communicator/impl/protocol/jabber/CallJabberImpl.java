@@ -94,14 +94,19 @@ public class CallJabberImpl
         if (remoteParty == null)
             remoteParty = jingleIQ.getFrom();
 
+        System.out.println("Incoming Call From:" + remoteParty);
+
         CallPeerJabberImpl callPeer = new CallPeerJabberImpl(remoteParty, this);
+
+        System.out.println("Call Peer Created.");
 
         //before notifying about this call, make sure that it looks alright
         callPeer.processSessionInitiate(jingleIQ);
 
-        if( callPeer.getState() == CallPeerState.FAILED)
+        if( callPeer.getState() == CallPeerState.FAILED){
+            System.out.println("Call Failed!!!");
             return null;
-
+        }
         addCallPeer(callPeer);
 
         callPeer.setState( CallPeerState.INCOMING_CALL );
