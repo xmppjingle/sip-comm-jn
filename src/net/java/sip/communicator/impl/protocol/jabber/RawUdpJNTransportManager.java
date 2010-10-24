@@ -376,7 +376,7 @@ public class RawUdpJNTransportManager
         if (!services.containsKey(connection)) {
             final SmackServiceNode service = new SmackServiceNode(connection, 60000);
 
-            final SmackServiceNode.MappedNodes nodes = SmackServiceNode.searchServices(connection, 5, 3, 20, JingleChannelIQ.UDP);
+            final SmackServiceNode.MappedNodes nodes = SmackServiceNode.searchServices(connection, 6, 3, 20, JingleChannelIQ.UDP);
             service.addEntries(nodes);
 
             services.put(connection, service);
